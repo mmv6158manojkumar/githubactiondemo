@@ -1,12 +1,10 @@
 name: Create S3 Bucket
 
 on:
-  workflow_dispatch:
-    inputs:
-      bucket_name:
-        description: 'S3 Bucket Name'
-        required: true
-        type: string
+  push:
+    branches:
+      - main    # Set to your main branch, or change as needed
+  workflow_dispatch:  # Allows manual runs too
 
 jobs:
   create-bucket:
@@ -26,8 +24,9 @@ jobs:
     - name: Create S3 bucket
       run: |
         aws s3api create-bucket \
-          --bucket "${{ github.event.inputs.bucket_name }}" \
-          --region "us-east-1"
+          --bucket "mmv6158-gitlab" \
+          --region "us-east-1" \
+          --create-bucket-configuration LocationConstraint="us-east-1"
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
