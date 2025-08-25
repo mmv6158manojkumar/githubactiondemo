@@ -1,10 +1,10 @@
-name: Delete S3 Bucket
+name: Delete S3 Buckets
 
 on:
   workflow_dispatch:
     inputs:
-      bucket_name:
-        description: 'S3 Bucket Name to delete'
+      bucket_names:
+        description: 'Comma-separated list of S3 Bucket Names to delete'
         required: true
         type: string
       region:
@@ -13,7 +13,7 @@ on:
         type: string
 
 jobs:
-  delete-bucket:
+  delete-buckets:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,19 +27,16 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ github.event.inputs.region }}
 
-    - name: Empty S3 bucket
+    - name: Delete all listed S3 buckets
       run: |
-        aws s3 rm s3://${{ github.event.inputs.bucket_name }} --recursive --region "${{ github.event.inputs.region }}"
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ github.event.inputs.region }}
-
-    - name: Delete S3 bucket
-      run: |
-        aws s3api delete-bucket \
-          --bucket "${{ github.event.inputs.bucket_name }}" \
-          --region "${{ github.event.inputs.region }}"
+        IFS=',' read -ra BUCKETS <<< "${{ github.event.inputs.bucket_names }}"
+        for BUCKET in "${BUCKETS[@]}"; do
+          BUCKET_TRIMMED=$(echo "$BUCKET" | xargs)
+          echo "Emptying $BUCKET_TRIMMED ..."
+          aws s3 rm "s3://$BUCKET_TRIMMED" --recursive --region "${{ github.event.inputs.region }}"
+          echo "Deleting $BUCKET_TRIMMED ..."
+          aws s3api delete-bucket --bucket "$BUCKET_TRIMMED" --region "${{ github.event.inputs.region }}"
+        done
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
